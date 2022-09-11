@@ -1,0 +1,435 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html>
+    <head>
+    <meta charset="utf-8" />
+    <title>Form Editor</title>
+    <style>
+        .bigspan {
+        font-size: x-large;
+        }
+
+        body {
+        color: #66ee66;
+        background-color: #303030;
+        font-family: sans-serif;
+        padding: 3px;
+        border-radius: 4px;
+        }
+
+        a {
+        text-decoration: none;
+        color: #66ee66;
+        }
+
+        button {
+        margin: 7px 2px 2px 2px;
+        width: 15em;
+        border-radius: 4px;
+        }
+
+        select {
+        width: 75%;
+        }
+
+        .elementWrapperDiv {
+        border: 1px solid #66ee66;
+        border-radius: 4px;
+        padding: 1px 1px 1px 1px;
+        margin: 3px;
+        }
+
+        .multiselect {
+        width: 75%;
+        }
+
+        .simpleTextbox {
+        width: 75%;
+        }
+
+        .selectBox {
+        position: relative;
+        }
+
+        .selectBox select {
+        width: 100%;
+        font-weight: bold;
+        }
+
+        .header {
+        position: sticky;
+        margin: 0px;
+        position: fixed;
+        background-color: inherit;
+        z-index: 100;
+        }
+
+        .code {
+        margin-top: 10em;
+        }
+
+        .toolbar {
+        text-align: right;
+        font-size: smaller;
+        color: white;
+        }
+
+        .overSelect {
+        position: absolute;
+        left: 0;
+        right: 0;
+        top: 0;
+        bottom: 0;
+        }
+
+        span {
+        cursor: pointer;
+        }
+
+        textarea {
+        width: 75%;
+        height: 100px;
+        }
+
+        .checkboxes {
+        display: none;
+        border: 1px #dadada solid;
+        }
+
+        .checkboxes label {
+        display: block;
+        }
+
+        .checkboxes label:hover {
+        background-color: #1e90ff;
+        }
+    </style>
+    </head>
+    <body>
+    <script type="text/javascript">
+        function copyTextareaToClipboard() {
+        var t = document.getElementById("codeTextarea");
+        t.focus();
+        t.select();
+
+        try {
+            var successful = document.execCommand("copy");
+            var msg = successful ? "successful" : "unsuccessful";
+        } catch (err) {}
+        }
+
+        function showCode() {
+        button = document.getElementById("showCodeButton");
+        textarea = document.getElementById("codeTextarea");
+        codeInnerDiv = document.getElementById("codeInnerDiv");
+        if (codeInnerDiv.style.display != "") {
+            codeInnerDiv.style.display = "";
+            textarea.value = document.getElementById("contentDiv").innerHTML;
+            button.value = " Спрятать код "
+            document.getElementById("copyCodeButton").style.display = ""; 
+            return;
+        }
+
+        codeInnerDiv.style.display = "none";
+        textarea.value = "";
+        button.value = "Показать код"
+        document.getElementById("copyCodeButton").style.display = "none"; 
+        return;
+        }
+
+        function findFocus(el) {
+        el.oldwidth = el.style.width;
+        el.style.width = "100%";
+        if (el.value == "Комментарий...") el.value = "";
+        }
+
+        function findUnfocus(el, spanName) {
+        el.style.width = el.oldwidth;
+        if (el.value.trim() == "") el.value = "Комментарий...";
+        commentSpan = document.getElementById(spanName);
+        commentSpan.innerHTML = el.value;
+        }
+
+        Element.prototype.remove = function () {
+        this.parentElement.removeChild(this);
+        };
+        NodeList.prototype.remove = HTMLCollection.prototype.remove =
+        function () {
+            for (var i = this.length - 1; i >= 0; i--) {
+            if (this[i] && this[i].parentElement) {
+                this[i].parentElement.removeChild(this[i]);
+            }
+            }
+        };
+        globalCounter = 1;
+
+        function addEl(origin, what) {
+        form = document.getElementById("formUnderConstruction");
+        var div = document.createElement("div");
+        div.innerHTML = generateElement(what);
+        form.appendChild(div);
+        }
+
+        function generateElement(elementName) {
+        thisDivName = `${elementName}_${globalCounter}_container`;
+        thisContentDivName = `content_${thisDivName}`;
+        result = `<div class="elementWrapperDiv" id="${thisDivName}"> 
+        <p class="toolbar">Элемент: ${thisDivName}<br/> 
+        <span onclick='upDiv("${thisDivName}")'> [ 🔺 ] </span> 
+        <span onclick='downDiv("${thisDivName}")'> [ 🔻 ] </span> 
+        <span onclick='editDiv("${thisContentDivName}")'> [ ✏️ ] </span> 
+        <span onclick='rmDiv("${thisDivName}")'> [ ❌ ]</span> 
+        <br/>
+        <input type="text" value="Комментарий..." id="comment_${thisDivName}"
+        onfocus="findFocus(this)" onfocusout="findUnfocus(this, 'comment_${thisDivName}_span')">
+        <span style="display:none" id="comment_${thisDivName}_span" linked="comment_${thisDivName}"></span>
+        </p>
+        <div id="${thisContentDivName}">`;
+
+        switch (elementName) {
+            case "multiselect":
+            result += generateMultiselect();
+            break;
+            case "select":
+            result += generateSelect();
+            break;
+            case "date":
+            result += generateDate();
+            break;
+            case "label":
+            result += generateLabel();
+            break;
+            case "button":
+            result += generateButton();
+            break;
+            case "optgroup":
+            result += generateOptgroup();
+            break;
+            case "checkbox":
+            result += generateCheckbox();
+            break;
+            case "checkboxgroup":
+            result += generateCheckboxGroup();
+            break;
+            case "textbox":
+            result += generateTextbox();
+            break;
+            case "autocomplete":
+            result += generateAutocomplete();
+            break;
+            case "textarea":
+            result += generateTextarea();
+            break;
+        }
+
+        result += "\n\n</div></div>";
+        globalCounter++;
+        return result;
+        }
+
+        function editDiv(elName) {
+        globalCounter++;
+        el = document.getElementById(elName);
+        if (el.oldHtml != null) return;
+
+        el.oldHtml = el.innerHTML;
+        editorId = `editor_${globalCounter}`;
+        el.innerHTML = `
+    <textarea id="${editorId}"></textarea>
+    <br/>
+    <span class="bigspan" onclick="saveEditor('${elName}', '${editorId}')"> 💾 </span>
+    <span class="bigspan" onclick="cancelEditor('${elName}')"> 🚫 </span>
+    <br/>
+    `;
+        document.getElementById(editorId).value = el.oldHtml;
+        }
+
+        function cancelEditor(elName) {
+        el = document.getElementById(elName);
+        el.innerHTML = el.oldHtml;
+        el.oldHtml = null;
+        }
+
+        function saveEditor(elName, editorId) {
+        el.innerHTML = document.getElementById(editorId).value;
+        el.oldHtml = null;
+        }
+
+        function generateAutocomplete() {
+        return `<input type="text" class="simpleTextbox" id="textarea${globalCounter}" value="(Начните вводить...)"></input>`;
+        }
+
+        function generateTextbox() {
+        return `<input type="text" class="simpleTextbox" id="textarea${globalCounter}" value="Ввод текста"></input>`;
+        }
+
+        function generateCheckboxGroup() {
+        return `<input type='checkbox' id='checkbox${globalCounter}_1'>Чекбокс 1</input><br/>
+            <input type='checkbox' id='checkbox${globalCounter}_2'>Чекбокс 2</input><br/>
+            <input type='checkbox' id='checkbox${globalCounter}_3'>Чекбокс 3</input><br/>`;
+        }
+
+        function generateCheckbox() {
+        return `<input type="checkbox" id="checkbox${globalCounter}">Чекбокс 1</input>`;
+        }
+
+        function generateOptgroup() {
+        return `
+        <input type="radio" id="optgroup${globalCounter}_1" name="optgroup${globalCounter}" 
+        value="Вариант 1"><label for="optgroup${globalCounter}_1">Вариант 1</label><br>
+        <input type="radio" id="optgroup${globalCounter}_2" name="optgroup${globalCounter}" 
+        value="Вариант 1"><label for="optgroup${globalCounter}_2">Вариант 2</label><br>
+        <input type="radio" id="optgroup${globalCounter}_3" name="optgroup${globalCounter}" 
+        value="Вариант 1"><label for="optgroup${globalCounter}_3">Вариант 3</label>
+        `;
+        }
+
+        function generateTextarea() {
+        return `<textarea id="textarea${globalCounter}">Многострочный\nтекст</textarea>`;
+        }
+
+        function generateButton() {
+        return `<button id="button${globalCounter}" onclick="javascript:void(0);">Кнопка</button>`;
+        }
+
+        function generateLabel() {
+        return `<p id="label${globalCounter}">Обычная надпись</p>`;
+        }
+
+        function rmDiv(id) {
+        document.getElementById(id).remove();
+        }
+
+        function generateDate() {
+        return `
+        <div>Дата:<br/>
+            <input type="date" id="datepicker${globalCounter}" name="datepicker${globalCounter}">
+        </div>`;
+        }
+
+        function generateMultiselect() {
+        return `
+        <div class="multiselect" id="multiselect${globalCounter}">
+            <div class="selectBox" onclick="showCheckboxes(${globalCounter})">
+            <select>
+                <option>Выберите несколько вариантов</option>
+            </select>
+            <div class="overSelect"></div>
+            </div>
+            <div class="checkboxes checkboxes${globalCounter}">
+            <label for="choice${globalCounter}_1"> <input type="checkbox" id="choice${globalCounter}_1" />Первый вариант</label>
+            <label for="choice${globalCounter}_2"> <input type="checkbox" id="choice${globalCounter}_2" />Второй вариант</label>
+            <label for="choice${globalCounter}_3"> <input type="checkbox" id="choice${globalCounter}_3" />Третий вариант</label>
+            </div>
+        </div>
+            `;
+        }
+
+        function generateSelect() {
+        return `
+            <select id="select${globalCounter}">
+                <option disabled>Выберите один вариант</option>
+                <option value="Вариант1">Вариант №1</option>
+                <option selected value="Вариант2">Вариант №2</option>
+                <option value="Вариант3">Вариант №3</option>
+                <option value="Вариант4">Вариант №4</option>
+            </select>        
+            `;
+        }
+
+        function showCheckboxes(num) {
+        var checkboxes = document.getElementsByClassName("checkboxes" + num);
+        for (i = 0; i < checkboxes.length; i++) {
+            c = checkboxes[i];
+            try {
+            expanded = c.expanded;
+            } catch (e) {
+            c.expanded = false;
+            }
+            if (c.expanded == false) {
+            c.style.display = "block";
+            c.expanded = true;
+            } else {
+            c.style.display = "none";
+            c.expanded = false;
+            }
+        }
+        }
+
+        function downDiv(elid) {
+        el = document.getElementById(elid).parentNode;
+        if (el == el.parentNode.lastChild) return;
+        nextEl = el.parentNode.children[getElNum(el) + 1];
+        el.parentNode.insertBefore(nextEl, el);
+        }
+
+        function upDiv(elid) {
+        el = document.getElementById(elid).parentNode;
+        if (el == el.parentNode.firstChild) return;
+        prevEl = el.parentNode.children[getElNum(el) - 1];
+        el.parentNode.insertBefore(el, prevEl);
+        }
+
+        function getElNum(el) {
+        for (num = 0; num < el.parentNode.children.length; num++) {
+            if (el.parentNode.children[num] == el) return num;
+        }
+        }
+
+        function saveAllCode() {
+        textarea = document.getElementById("codeTextarea");
+        document.getElementById("contentDiv").innerHTML = textarea.value;
+        spans = document.getElementsByTagName("span");
+        for (i = 0; i < spans.length; i++) {
+            linked = spans[i].getAttribute("linked");
+            if (null != linked) {
+            document.getElementById(linked).value = spans[i].innerText;
+            if (spans[i].innerText == "") {
+                document.getElementById(linked).value = "Комментарий...";
+            }
+            }
+        }
+
+        showCode();
+        }
+
+        function cancelAllCode() {
+        document.getElementById("codeTextarea").value = "";
+        showCode();
+        }
+    </script>
+    </body>
+    <div class="header">
+    <h2>Добавляем:</h2>
+    <button onclick='addEl(this, "select")'>Выпадающий список</button>
+    <button onclick='addEl(this, "multiselect")'>Мультивыбор</button>
+    <button onclick='addEl(this, "autocomplete")'>Автозаполнение</button>
+    <button onclick='addEl(this, "button")'>Кнопка</button>
+    <button onclick='addEl(this, "optgroup")'>Набор радиокнопок</button>
+    <button onclick='addEl(this, "checkbox")'>Чекбокс</button>
+    <button onclick='addEl(this, "checkboxgroup")'>Набор чекбоксов</button>
+    <button onclick='addEl(this, "date")'>Выбор даты</button>
+    <button onclick='addEl(this, "label")'>Надпись</button>
+    <button onclick='addEl(this, "textbox")'>Обычное текстовое поле</button>
+    <button onclick='addEl(this, "textarea")' id='lastTopButton'>Многострочное поле</button>
+    </div>
+
+    <br />
+
+    <div class="code">
+    <input type="button" id="showCodeButton" onclick="showCode();" value="Показать код"></input> 
+    <input type="button" id="copyCodeButton" style="display:none;" onclick="copyTextareaToClipboard();" value="Копировать код"></input>
+    <div id="codeInnerDiv" style="display: none">
+        <textarea id="codeTextarea" style="width: 100%; height: 200px"></textarea>
+        <br />
+        <span class="bigspan" onclick="saveAllCode()"> 💾 </span>
+        <span class="bigspan" onclick="cancelAllCode()"> 🚫 </span>
+        <br />
+    </div>
+    </div>
+
+    <div class="content" id="contentDiv">
+    <h2>Форма:</h2>
+    <hr />
+    <div id="formUnderConstruction"></div>
+    </div>
+</html>
